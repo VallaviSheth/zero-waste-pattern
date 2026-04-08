@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+output/
+rollout_outputs/
+heuristic_outputs/
+tensorboard_logs/
+*.zip
+baseline_scores.json
+render_demo.png
+test_render.png
+test_metrics.png

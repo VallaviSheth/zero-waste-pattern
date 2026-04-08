@@ -1,0 +1,188 @@
+---
+# ZeroWaste-Pattern: The AI Sustainable Tailor
+# OpenEnv Specification v1.0
+
+metadata:
+  name: "ZeroWaste-Pattern"
+  version: "1.0.0"
+  description: >
+    An RL environment for garment marker making — the industrial process of
+    laying out pattern pieces on fabric rolls to minimize material waste.
+    The AI Sustainable Tailor must learn to efficiently pack irregular
+    polygon-shaped garment pieces while respecting grain direction constraints
+    and manufacturing tolerances. Targets 85%+ fabric utilization.
+  authors:
+    - name: "ZeroWaste Team"
+      email: "zerowaste@hackathon.dev"
+  license: "MIT"
+  tags:
+    - "openenv"
+    - "sustainability"
+    - "garment-manufacturing"
+    - "combinatorial-optimization"
+    - "packing"
+    - "reinforcement-learning"
+
+environment:
+  class: "ZeroWasteFabricEnv"
+  module: "env.fabric_env"
+  entry_point: "env.fabric_env:ZeroWasteFabricEnv"
+
+  # OpenEnv interface methods
+  interface:
+    reset: "reset() → (observation, info)"
+    step: "step(action) → (observation, reward, terminated, truncated, info)"
+    state: "state() → EnvironmentState"
+    grade: "task.grade(state) → float in [0.0, 1.0]"
+
+  # Typed Pydantic models
+  models:
+    observation: "models.observation:Observation"
+    action: "models.action:PlacementAction"
+    reward: "models.reward:Reward"
+    state: "models.state:EnvironmentState"
+
+tasks:
+  - id: "basic"
+    name: "BasicPacking"
+    difficulty: "easy"
+    description: >
+      Introductory task with rectangular pieces only. No grain constraints.
+      Suitable for initial algorithm development and debugging.
+    class: "tasks.basic_packing:BasicPackingTask"
+    fabric:
+      width_cm: 150
+      max_length_cm: 300
+      rolling_fabric: false
+    pieces:
+      total_types: 12
+      total_instances: 20
+      shapes: "rectangles"
+      grain_constraint: "none"
+      allowed_rotations: [0, 90, 180, 270]
+    grader:
+      method: "grade(state) → float"
+      scoring: "60% utilization (target 75%) + 40% placement ratio"
+      deterministic: true
+      range: [0.0, 1.0]
+    target_score: 0.90
+
+  - id: "irregular"
+    name: "IrregularShapes"
+    difficulty: "medium"
+    description: >
+      Full shirt pattern cutting with realistic polygon shapes and grain
+      direction constraints. Pieces include front/back bodice, sleeves,
+      collar, cuffs, yoke, and accessories.
+    class: "tasks.irregular_shapes:IrregularShapesTask"
+    fabric:
+      width_cm: 150
+      max_length_cm: 400
+      rolling_fabric: false
+    pieces:
+      total_types: 10
+      total_instances: 17
+      shapes: "irregular_polygons"
+      grain_constraint: "per_piece"
+      allowed_rotations: "per_piece"
+    grader:
+      method: "grade(state) → float"
+      scoring: "50% utilization (target 70%) + 30% placement ratio + 20% efficiency"
+      deterministic: true
+      range: [0.0, 1.0]
+    target_score: 0.80
+
+  - id: "industrial"
+    name: "IndustrialMode"
+    difficulty: "hard"
+    description: >
+      Industrial-grade task with strict grain tolerances (2.5 degrees),
+      fixed rotation constraints, rolling fabric simulation, and multiple
+      piece quantities. Mimics real garment factory cutting conditions.
+    class: "tasks.industrial_mode:IndustrialModeTask"
+    fabric:
+      width_cm: 150
+      max_length_cm: 500
+      rolling_fabric: true
+      extension_amount_cm: 50
+    pieces:
+      total_types: 10
+      total_instances: 15
+      shapes: "irregular_polygons"
+      grain_constraint: "strict"
+      grain_tolerance_deg: 2.5
+      allowed_rotations: "per_piece"
+    grader:
+      method: "grade(state) → float"
+      scoring: "40% utilization (target 80%) + 25% placement + 20% efficiency + 15% fabric economy"
+      deterministic: true
+      range: [0.0, 1.0]
+    target_score: 0.75
+
+schema:
+  observation:
+    type: "models.observation:Observation"
+    fields:
+      occupancy:
+        type: "Box(0, 1, shape=(grid_h, grid_w), float32)"
+        description: "Binary occupancy grid. 1=occupied, 0=free."
+      pieces_remaining:
+        type: "Box(0, inf, shape=(max_pieces, 8), float32)"
+        description: >
+          Per-piece feature matrix. Features: [norm_w, norm_h, area_ratio,
+          grain_h, grain_v, grain_bias, qty_remaining_norm, is_present].
+      utilization:
+        type: "Box(0, 1, shape=(1,), float32)"
+        description: "Current fabric utilization fraction."
+      fabric_length_used:
+        type: "Box(0, 1, shape=(1,), float32)"
+        description: "Normalized fabric length consumed."
+      step_count:
+        type: "Box(0, 1, shape=(1,), float32)"
+        description: "Normalized step count."
+
+  action:
+    type: "MultiDiscrete([n_pieces+1, grid_w, grid_h, 4])"
+    description: >
+      [piece_idx, grid_x, grid_y, rotation_idx].
+      piece_idx=n_pieces is a no-op.
+      rotation_idx: 0=0deg, 1=90deg, 2=180deg, 3=270deg.
+
+  reward:
+    type: "models.reward:Reward"
+    components:
+      placement_reward: "(piece_area / fabric_area) * scale"
+      overlap_penalty: -1.0
+      out_of_bounds_penalty: -0.8
+      grain_violation_penalty: -0.6
+      fragmentation_penalty: "-frag * 0.05"
+      step_penalty: -0.01
+      completion_bonus: "utilization * scale (at episode end)"
+
+deployment:
+  dockerfile: "Dockerfile"
+  port: 7860
+  healthcheck: "GET /"
+  hf_space_tag: "openenv"
+
+dependencies:
+  python: ">=3.8"
+  packages:
+    - "numpy>=1.21.0"
+    - "shapely>=1.8.0"
+    - "gymnasium>=0.26.0"
+    - "pydantic>=1.10.0"
+    - "matplotlib>=3.4.0"
+    - "fastapi>=0.100.0"
+    - "uvicorn>=0.20.0"
+    - "openai>=1.0.0"
+
+benchmarks:
+  random_agent:
+    basic: {grade: 0.25, utilization_pct: 15.0}
+    irregular: {grade: 0.15, utilization_pct: 10.0}
+    industrial: {grade: 0.10, utilization_pct: 8.0}
+  greedy_heuristic:
+    basic: {grade: 0.85, utilization_pct: 80.0}
+    irregular: {grade: 0.70, utilization_pct: 58.0}
+    industrial: {grade: 0.60, utilization_pct: 65.0}
