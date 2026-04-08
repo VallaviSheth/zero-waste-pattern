@@ -1,3 +1,16 @@
+---
+title: ZeroWaste-Pattern
+emoji: ✂️
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+tags:
+  - openenv
+  - reinforcement-learning
+  - sustainability
+---
+
 # ZeroWaste-Pattern: The AI Sustainable Tailor
 
 An OpenEnv-compliant reinforcement learning environment for **garment marker making** -- the industrial process of arranging pattern pieces on fabric rolls to minimize material waste.
