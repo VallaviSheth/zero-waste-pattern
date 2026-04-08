@@ -159,7 +159,7 @@ def list_tasks():
 
 
 @app.post("/reset", response_model=ResetResponse)
-def reset_env(req: ResetRequest):
+def reset_env(req: ResetRequest = ResetRequest()):
     """Reset the environment and start a new episode.
 
     Returns a session_id for subsequent step() and state() calls.
