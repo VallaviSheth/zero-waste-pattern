@@ -1,0 +1,32 @@
+{
+  "random": [
+    {
+      "task": "BasicPacking",
+      "agent": "random",
+      "avg_grade": 0.5602,
+      "std_grade": 0.0471,
+      "avg_utilization_pct": 30.52,
+      "avg_pieces_placed": 15.8,
+      "episodes": 5
+    },
+    {
+      "task": "IrregularShapes",
+      "agent": "random",
+      "avg_grade": 0.421,
+      "std_grade": 0.0459,
+      "avg_utilization_pct": 19.26,
+      "avg_pieces_placed": 15.2,
+      "episodes": 5
+    },
+    {
+      "task": "IndustrialMode",
+      "agent": "random",
+      "avg_grade": 0.3451,
+      "std_grade": 0.0223,
+      "avg_utilization_pct": 14.98,
+      "avg_pieces_placed": 14.4,
+      "episodes": 5
+    }
+  ],
+  "llm": []
+}
